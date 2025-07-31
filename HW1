@@ -1,11 +1,13 @@
 import os
 import math
 import random
+import matplotlib.pyplot as plt   # เอามาพอตกราฟ
 
 # Sigmoid Activation Function & derivative  
 def sigmoid_function(x):
-    return  1.0 / (1.0 + math.exp(-max(min(x, 20), -20)))
+    return  1.0 / (1.0 + math.exp(-max(min(x , 20), -20)))
 
+#Sigmoid derivative Function
 def sigmoid_derivative_func(output):
     return output * (1.0 - output)
 
@@ -35,12 +37,10 @@ def load_cross_data_set(filename):
                 break
             if line.startswith("p"):
                 features = list(map(float, f.readline().strip().split()))
-                labels = list(map(int, f.readline().strip().split()))
+                labels   = list(map(int, f.readline().strip().split()))
                 true_class = 0 if labels[0] == 1 else 1
                 data.append(features + [true_class])
     return data
-
-
 
 
 # =-  normalize ข้อมูล
@@ -75,15 +75,15 @@ class MLP_Predictflood:
         self.output_node = output_node
         self.hidden_node = hidden_node
         
-# การเริ่มต้นน้ำหนัก (weights) ระหว่าง input layer และ hidden layer
-        self.weg1 = [[random.uniform(-1, 1) for _ in range(input_node)] 
+# การเริ่มต้นน้ำหนัก (weights) ระหว่าง input layer และ hidden layer ใช้การสุ่มระหว่าง -1 ถึง 1
+        self.weg1 = [[random.uniform(-1, 1) for _ in range(input_node)]  #
                    for _ in range(hidden_node)]
-# การเริ่มต้น bias สำหรับ hidden layer
+# การเริ่มต้น bias สำหรับ hidden layer ใช้ weight สุ่มระหว่าง -1 ถึง 1
         self.bias1 = [random.uniform(-1, 1) for _ in range(hidden_node)]
- # การเริ่มต้นน้ำหนัก (weights) ระหว่าง hidden layer และ output layer
+ # การเริ่มต้นน้ำหนัก (weights) ระหว่าง hidden layer และ output layer ใช้การสุ่มระหว่าง -1 ถึง 1
         self.weg2 = [[random.uniform(-1, 1) for _ in range(hidden_node)] 
                    for _ in range(output_node)]
-# การเริ่มต้น bias สำหรับ output layer
+# การเริ่มต้น bias สำหรับ output layer      weight ใช้การสุ่มระหว่าง -1 ถึง 1
         self.bias2 = [random.uniform(-1, 1) for _ in range(output_node)]
 # การเริ่มต้นการเก็บการเปลี่ยนแปลงของน้ำหนักและ bias จากรอบก่อนหน้า (สำหรับโมเมนตัม)
         self.previous_dweg1  = [[0.0 for _ in range(input_node)] for _ in range(hidden_node)]
@@ -93,12 +93,12 @@ class MLP_Predictflood:
 
     def forward(self, X):
         # คำนวณผลรวมของการคูณน้ำหนักและอินพุต (hidden layer input)
-        self.hidden_layer_input = [sum(self.weg1[i][j] * X[j] for j in range(self.input_nodes)) + self.bias1[i] 
+        self.hidden_layer_input = [sum( self.weg1 [i][j] * X[j] for j in range(self.input_nodes)) + self.bias1[i] 
                   for i in range(self.hidden_node)]
         # ใช้ฟังก์ชัน sigmoid เพื่อคำนวณค่า activation ของ hidden layer (a1)
         self.a1 = [sigmoid_function(z) for z in self.hidden_layer_input]    # a= activation ของ hidden layer
         # คำนวณผลรวมของการคูณน้ำหนักและผลลัพธ์จาก hidden layer (output layer input)
-        self.output_layer_input = [sum(self.weg2[k][i] * self.a1[i] for i in range(self.hidden_node)) + self.bias2[k]
+        self.output_layer_input = [sum( self.weg2 [k][i] * self.a1 [i] for i in range(self.hidden_node)) + self.bias2[k]
                   for k in range(self.output_node)]
         # คืนค่าผลลัพธ์
         return self.output_layer_input[0] 
@@ -138,7 +138,9 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
     fold_size = len(data) // k
     # สับเปลี่ยนข้อมูลเพื่อให้เกิดความสุ่ม
     random.shuffle(data)
-    mse_scores = []  # เก็บค่า Mean Squared Error (MSE) ของแต่ละ fold
+    
+    mse_scores = []  # เก็บค่า MSE ของแต่ละ fold
+    epoch_mse_all_folds = []  # เก็บค่า MSE ของแต่ละ epoch สำหรับทุก fold
     
     for i in range(k):
         # แบ่งข้อมูลเป็น fold สำหรับ validation และ training
@@ -148,6 +150,9 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
         mlp = MLP_Predictflood(hidden_node=hidden_node)
         mlp.learning_rate = learning_r
         mlp.momentum_rate = momentum_r
+        
+        
+        epoch_mse = []  # เก็บ MSE ของแต่ละ epoch สำหรับ fold นี้
         
         # Training
         for epoch in range(mlp.epoch):
@@ -161,6 +166,19 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
                 total_error += error
             if total_error / len(train_data) < 1e-6:
                 break
+        # เก็บค่า MSE ของแต่ละ epoch สำหรับ fold นี้
+            epoch_mse_all_folds.append(epoch_mse)
+        
+         # คำนวณ MSE สำหรับการทดสอบ (validation)
+            total_mse = 0
+            for sample in value_data:
+                X = sample[:-1]
+                y_true = sample[-1]
+                y_pred = mlp.forward(X)
+                total_mse += (y_true - y_pred) ** 2
+            mse = total_mse / len(value_data) * 0.1
+            epoch_mse.append(mse)
+        
         
         # Validation
         total_mse = 0
@@ -172,12 +190,33 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
         # คำนวณ MSE สำหรับ fold นี้
         mse = total_mse / len(value_data)*0.1
         mse_scores.append(mse)
-        print(f"Fold{i+1} MSE = {mse:.6f}")
+        print(f"Fold {i+1} MSE = {mse:.6f}")
     # คำนวณค่าเฉลี่ย MSE ของทุก fold
     average_mse = sum(mse_scores) / len(mse_scores)
     std_mse = math.sqrt(sum((x - average_mse)**2 for x in mse_scores) / len(mse_scores))
     print(f"\nAverage Mean Squared Error (MSE): {average_mse:.6f}")
     
+    
+    # พล็อต MSE vs Epoch สำหรับ fold แรก (คุณสามารถเพิ่มการพล็อตสำหรับทุก fold ได้)
+    if epoch_mse_all_folds:  # ตรวจสอบให้แน่ใจว่า epoch_mse_all_folds มีข้อมูล
+        plot_mse_vs_epoch(epoch_mse_all_folds[0])  # พล็อตสำหรับ fold แรก
+    else:
+        print("No MSE data available for plotting.")
+
+
+# Function to plot MSE vs Epoch
+def plot_mse_vs_epoch(epoch_mse):
+    epochs = range(1, len(epoch_mse) + 1)  # สร้างลิสต์ของ epoch (เริ่มจาก 1)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(epochs, epoch_mse, marker='o', linestyle='-', color='b')
+    plt.title('MSE vs Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Squared Error (MSE)')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+   
 # =--- ทำ confusion_matrix    
 def generate_confusion_matrix(true_labels, predicted_labels):
     true_positive = true_negative = false_positive = false_negative = 0  # กำหนดค่าเริ่มต้นของ TP, TN, FP, FN
@@ -201,15 +240,15 @@ class MLP_Classification:
         self.epoch = 1000           # กำหนดให้ epoch = 1000  
         self.learning_rate = 0.01
         self.momentum_rate = 0.8          
-        self.input_nodes = input_nodes
-        self.output_node = output_node
-        self.hidden_node = hidden_node
+        self.input_nodes   = input_nodes
+        self.output_node   = output_node
+        self.hidden_node   = hidden_node
         
-        # น้ำหนัก (weights) สำหรับเชื่อมต่อระหว่าง input layer และ hidden layer
+        # น้ำหนัก (weights) สำหรับเชื่อมต่อระหว่าง input layer และ hidden layer  ใช้การสุ่มระหว่าง -1 ถึง 1
         self.weg1 = [[random.uniform(-1, 1) for _ in range(input_nodes)] 
                    for _ in range(hidden_node)]
         self.bias1 = [random.uniform(-1, 1) for _ in range(hidden_node)]
-        # น้ำหนัก (weights) สำหรับเชื่อมต่อระหว่าง hidden layer และ output layer
+        # น้ำหนัก (weights) สำหรับเชื่อมต่อระหว่าง hidden layer และ output layer  ใช้การสุ่มระหว่าง -1 ถึง 1
         self.weg2 = [[random.uniform(-1, 1) for _ in range(hidden_node)] 
                    for _ in range(output_node)]
         self.bias2 = [random.uniform(-1, 1) for _ in range(output_node)]
@@ -260,7 +299,7 @@ class MLP_Classification:
         return error ** 2
     
 # ฟังก์ชันการทำ Cross-Validation สำหรับการจำแนกประเภท
-def class_c_vali(data, k=10, hidden_node=4, learning_r=0.01, momentum_r=0.8):
+def class_c_vali( data, k =10, hidden_node=4, learning_r=0.01, momentum_r=0.8):
     if not data:
         print("No data.")
         return
@@ -309,7 +348,7 @@ def class_c_vali(data, k=10, hidden_node=4, learning_r=0.01, momentum_r=0.8):
     
     # ตรวจสอบว่า average_accuracy เป็นค่าที่สามารถใช้ในการแสดงผลได้หรือไม่
     if isinstance(average_accuracy, (int, float)):
-        print(f"Average Accuracy = {(average_accuracy * 100):.4f} %")
+        print(f"Average Accuracy = {(average_accuracy * 100):.4f} %")     # print เป็น % ออกมา
     else:
         print("Error: Invalid average accuracy value")
 
