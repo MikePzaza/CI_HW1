@@ -1,7 +1,7 @@
 import os
 import math
 import random
-import matplotlib.pyplot as plt   # เอามาพอตกราฟ
+import matplotlib.pyplot as plt   # เอามาวาดกราฟ
 
 # Sigmoid Activation Function & derivative  
 def sigmoid_function(x):
@@ -29,18 +29,25 @@ def load_flood_data_set(filename):
 
 # -  ดึงข้อมูล cross -
 def load_cross_data_set(filename):
-    data = []
-    with open(filename, "r") as f:
-        while True:
-            line = f.readline().strip()
-            if not line:
-                break
-            if line.startswith("p"):
-                features = list(map(float, f.readline().strip().split()))
-                labels   = list(map(int, f.readline().strip().split()))
+    data = []  # สร้างลิสต์ที่ใช้เก็บข้อมูลที่โหลดจากไฟล์
+    
+    with open(filename, "r") as f:  # เปิดไฟล์ที่ระบุในโหมดอ่าน
+        while True:  # ลูปนี้จะทำงานจนกว่าจะถึงบรรทัดสุดท้ายของไฟล์
+            line = f.readline().strip()  # อ่านบรรทัดปัจจุบันและลบช่องว่างที่เกินออก
+            if not line:  # ถ้าข้อมูลหมดเเล้วให้ ออกจากลูป
+                break  
+            
+            if line.startswith("p"):  # อ่านบรรทัดที่มี "p" จะอ่านบรรทัดถัดไปที่มีฟีเจอร์ ลบช่องว่างและแปลงเป็นตัวเลข
+                features = list(map(float, f.readline().strip().split()))  
+                # อ่านบรรทัดถัดไปที่มีป้ายกำกับ labels และแปลงเป็นตัวเลข 0 หรือ 1
+                labels = list(map(int, f.readline().strip().split()))
+                
                 true_class = 0 if labels[0] == 1 else 1
+                
                 data.append(features + [true_class])
-    return data
+                
+    return data  # คืนค่าลิสต์ data ที่เก็บข้อมูลที่โหลดมา
+
 
 
 # =-  normalize ข้อมูล
@@ -67,7 +74,7 @@ def normalize(data):
 
 #  multilayer perceptron ของ Predict ระดับน้ำ
 class MLP_Predictflood:
-    def __init__(self, input_node=8, hidden_node=4, output_node=1):
+    def __init__(self , input_node=8, hidden_node=4, output_node=1):
         self.epoch = 1000
         self.learning_rate = 0.01
         self.momentum_rate = 0.9
@@ -176,7 +183,7 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
                 y_true = sample[-1]
                 y_pred = mlp.forward(X)
                 total_mse += (y_true - y_pred) ** 2
-            mse = total_mse / len(value_data) * 0.1
+            mse = total_mse / len(value_data) 
             epoch_mse.append(mse)
         
         
@@ -188,13 +195,13 @@ def K_Fold_Cross_Validation( data , k=10, hidden_node=5 , learning_r=0.01 , mome
             y_pred = mlp.forward(X)
             total_mse += (y_true - y_pred)**2
         # คำนวณ MSE สำหรับ fold นี้
-        mse = total_mse / len(value_data)*0.1
+        mse = total_mse / len(value_data)  
         mse_scores.append(mse)
         print(f"Fold {i+1} MSE = {mse:.6f}")
     # คำนวณค่าเฉลี่ย MSE ของทุก fold
     average_mse = sum(mse_scores) / len(mse_scores)
     std_mse = math.sqrt(sum((x - average_mse)**2 for x in mse_scores) / len(mse_scores))
-    print(f"\nAverage Mean Squared Error (MSE): {average_mse:.6f}")
+    print(f"\nAverage Mean Squared Error (MSE) = {average_mse:.6f}")
     
     
     # พล็อต MSE vs Epoch สำหรับ fold แรก (คุณสามารถเพิ่มการพล็อตสำหรับทุก fold ได้)
@@ -356,33 +363,38 @@ def class_c_vali( data, k =10, hidden_node=4, learning_r=0.01, momentum_r=0.8):
 # -============= TEST ==================-
 
 # ข้อ1
-def run_predictflood():
+def task_1():
     print("\n----- ข้อ1 ) Predict ระดับน้ำ -----")
     
-    data = load_flood_data_set("flood_data.txt")
+    data = load_flood_data_set("flood_data.txt")   # โหลดข้อมูลในไฟล์ flood_data.txt
     normalize_data, _ = normalize(data)
     # กำหนดค่า
-    K_Fold_Cross_Validation(normalize_data, k=10, hidden_node=5, learning_r=0.01, momentum_r=0.9)
+    K_Fold_Cross_Validation(normalize_data, k=10, hidden_node=4, learning_r=0.01  , momentum_r=0.1)
     print("\n---------------------------------")
 # ข้อ2
-def run_classification():
+def task_2():
     print("\n----- ข้อ2 ) Classification  -----")
     
-    cross_data = load_cross_data_set("cross.txt")
+    cross_data = load_cross_data_set("cross.txt")  # โหลดข้อมูลในไฟล์ cross.txt
     if not cross_data:
         print("Failed")
         return
     # กำหนดค่า
-    configs = [
-        {"hidden_node": 4, "learning_r": 0.01, "momentum_r": 0.9} , {"hidden_node": 5, "learning_r": 0.03, "momentum_r": 0.8},
-    ]
+    configs = [ {"hidden_node": 4, "learning_r": 0.01, "momentum_r": 0.9} , {"hidden_node": 4, "learning_r": 0.001, "momentum_r": 0.9},
+                {"hidden_node": 4, "learning_r": 0.01, "momentum_r": 0.5} , {"hidden_node": 4, "learning_r": 0.01, "momentum_r": 0.1} ]
     
     for config in configs:
-        print(f"\nConfig: hidden_node={config['hidden_node']}, learning_rate={config['learning_r']}, momentum_rate={config['momentum_r']}")
+        print(f"\ncondition : hidden_node={config['hidden_node']}, learning_rate={config['learning_r']}, momentum_rate={config['momentum_r']}")
         class_c_vali(
             cross_data, k=10 , 
             hidden_node=config['hidden_node'],   learning_r=config['learning_r'],   momentum_r=config['momentum_r']
         )
         
-run_predictflood()
-run_classification()
+task_1()
+task_2()
+
+
+
+
+
+
